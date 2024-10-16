@@ -1,0 +1,6 @@
+
+magma --annotate --snp-loc magma/SNPLOC.txt --gene-loc magma/NCBI38.gene.loc --out MAGMA_location_hg38_SNP_Gene_annotation
+
+magma --bfile magma/g1000_eas --pval magma/PVAL.txt N=212453 --gene-annot MAGMA_location_hg38_SNP_Gene_annotation.genes.annot --out Gene_analysis
+
+magma --gene-results magma/Gene_analysis.genes.raw --set-annot magma/geneset/allsetgene_gene.txt --out allgene_set
