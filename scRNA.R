@@ -103,7 +103,7 @@ p <- ggplot(Cellratio, aes(x = cg, y = Freq, fill = group, order = TRUE)) +
   theme_minimal() +   
   theme(axis.text.x = element_text(angle = 60, hjust = 1),  
 
-# 保存图形
+# save
 ggsave("scRNA_Cell Proportion.pdf", p, width = 7, height = 5)
 
 
