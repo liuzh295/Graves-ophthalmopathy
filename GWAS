@@ -1,0 +1,35 @@
+#install.packages("data.table")
+#install.packages('R.utils')
+setwd("D:/SMR/GWAS")
+library(data.table)
+data <- fread("GD_GWAS_GCST90043624_buildGRCh37.tsv.gz", sep = "\t")
+head(data)
+
+data$b <- log(data$OR)
+f <- data[, c("variant_id", "effect_allele", "other_allele", "effect_allele_frequency", "beta", "SE_T", "p_value", "N")]
+colnames(f) <- c("SNP", "A1", "A2", "freq", "b", "se", "p", "n")
+head(f)
+write.table(f, "GWAS_GD.txt", sep = "\t", row.names = FALSE, quote = FALSE)
+
+./smr-1.3.1-win --bfile ./g1000_eur/g1000_eur --gwas-summary ./GWAS_GD.txt --beqtl-summary ./eQTL_pbmc/cis-eQTLs-full_eQTLGen_AF_incl_nr_formatted_20191212.new.txt_besd-dense --out mysmr --thread-num 10
+
+setwd("D:/SMR/GD")
+data <- read.delim("GD_eQTL.smr", header = TRUE, stringsAsFactors = FALSE)
+fdr <- p.adjust(data$p_SMR, method = "BH")
+results <- data.frame(data, FDR = fdr)
+write.csv(results, "GD_eQTL.csv", row.names = FALSE)
+
+./smr-1.3.1-win --bfile ./g1000_eur/g1000_eur --gwas-summary ./GWAS_GD.txt --beqtl-summary ./eQTL_pbmc/cis-eQTLs-full_eQTLGen_AF_incl_nr_formatted_20191212.new.txt_besd-dense --out myplot --plot --probe ENSG00000148057 --probe-wind 500 --gene-list glist-hg19
+
+
+source("plot_SMR.r")
+library(devtools)
+
+smrdata=ReadSMRData("myplot.ENSG00000148057.txt")
+SMRLocusPlot(data=smrdata,smr_thresh = 0.05,heidi_thresh = 0.05,plotWindow = 1000,anno_selfdef=FALSE)
+
+file_plot=ReadSMRData("myplot.ENSG00000148057.txt")
+file_plot$eQTL$V2=-file_plot$eQTL$V2
+pdf("test2.pdf",width = 6,height = 6)
+SMREffectPlot(data=file_plot, trait_name="GD_2") 
+dev.off()
