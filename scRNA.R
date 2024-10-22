@@ -110,7 +110,7 @@ cM <- confusionMatrix(paste0(scRNA@meta.data$Clusters), paste0(scRNA@meta.data$s
 cM <- data.frame(cM / Matrix::rowSums(cM))
 range(cM) 
 custom_order <- c("1", "2", "3", "4","5","6","7","8","9","10","11",
-                  "12","13","14","15","16","17","18","19","20","21")  # 替换为您的自定义顺序
+                  "12","13","14","15","16","17","18","19","20","21") 
 cM <- cM[custom_order, ]
 
 #library(ComplexHeatmap)
@@ -119,7 +119,7 @@ col_fun <- colorRamp2(
   c(0, 0.05, 0.1), 
   c("#8c510a", "white", "#01665e")
 )
-pdf("scRNA_细胞比例_.pdf")
+pdf("scRNA_prop_.pdf")
 Heatmap(cM, name = "Fraction of cells",  
         cluster_rows = FALSE, 
         cluster_columns = FALSE
@@ -165,8 +165,8 @@ write.csv(Cellratio,"Cellratio.csv")
 Cellratio$cg <- paste(Cellratio$celltype, Cellratio$group, sep = "_")
 
 p <- ggplot(Cellratio, aes(x = cg, y = Freq, fill = group, order = TRUE)) +
-  geom_bar(stat = "summary", fun = "mean", position = position_dodge2(width = 0.9)) +  # 设置position为position_dodge2并调整width
-  geom_errorbar(stat = "summary", fun.data = mean_se, position = position_dodge2(width = 0.9), width = 0.2) +  # 添加误差线
+  geom_bar(stat = "summary", fun = "mean", position = position_dodge2(width = 0.9)) +  
+  geom_errorbar(stat = "summary", fun.data = mean_se, position = position_dodge2(width = 0.9), width = 0.2) +  
   labs(title = "scRNA", x = NULL, y = "Fraction of cells") +  
   geom_point(aes(fill=sample),color = "black", size = 1) + 
   theme_minimal() +   
@@ -193,7 +193,7 @@ AverageExp <- AverageExpression(scRNA)
 expr <- AverageExp$RNA
 expr_normalize <- log2(expr+1)
 top10_genelist <- top10$gene
-expr_normalize_filted_1 <- expr_normalize[top10_genelist,]#top10_genelist可以换成特定的基因列表，以此来做热图
+expr_normalize_filted_1 <- expr_normalize[top10_genelist,]
 write.csv(expr_normalize,"expression.csv")
 
 annotation_col = data.frame(CellType = factor(rep(c("TC","NK","BC","mono","DC","progenitor","cycling"), 1)))
