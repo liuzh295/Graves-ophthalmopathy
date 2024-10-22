@@ -84,17 +84,31 @@ cM <- confusionMatrix(scATAC$Clusters, scATAC$predictedGroup)
 labelOld <- rownames(cM)
 labelOld
 remapClust <- c(
-  "0"="xxx", 
-  "1"="xxx", 
-  "2"="xxx", 
-  "3"="xxx",
-  "4"="xxx", 
-  "5"="xxx", 
-  "6"="xxx"
+  "C1" = "Progenitor",
+  "C2" = "DC",
+  "C3" = "mono",
+  "C4" = "mono",
+  "C5" = "mono",
+  "C6" = "BC",
+  "C7" = "BC",
+  "C8" = "BC",
+  "C9" = "DC",
+  "C10" = "TC",
+  "C11" = "TC",
+  "C12" = "TC",
+  "C13" = "TC",
+  "C14" = "TC",
+  "C15" = "TC",
+  "C16" = "TC",
+  "C17" = "Cycling",
+  "C18" = "TC",
+  "C19" = "TC",
+  "C20" = "NK",
+  "C21" = "TC",
+  "C22" = "NK"
 )
 scATAC$Clusters2 <- mapLabels(scATAC$Clusters, newLabels = remapClust, oldLabels = labelOld)
 p1 <- plotEmbedding(scATAC, colorBy = "cellColData", name = "Clusters2")
-p1
 plotPDF(p1, name = "Plot-UMAP-Remap-Clusters.pdf", ArchRProj = projHeme2, addDOC = FALSE, width = 5, height = 5)
 
 #Cell Proportion
@@ -160,7 +174,7 @@ for (cell_type in cell_types) {
     bias = c("TSSEnrichment", "log10(nFrags)"),
     testMethod = "wilcoxon",
     useGroups = "GO",
-    bgdGroups = "F-H"
+    bgdGroups = "Healthy"
   )
   markerList <- getMarkers(markersPeaks, cutOff = "FDR <= 0.1 & Log2FC >= 0.5")
   data <- markerList$"GO"
