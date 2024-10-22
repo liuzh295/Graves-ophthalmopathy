@@ -19,7 +19,17 @@ scRNA <- FindNeighbors(scRNA, reduction = "harmony", dims = 1:50)
 scRNA <- FindClusters(scRNA, resolution = 0.6)
 
 Idents(scRNA) <- "seurat_clusters"
-fimarker <- c("markers"
+fimarker <- c(
+  'CD3D',  
+  "CD4","CD8A",
+  "GPR183", 
+  "FOXP3", 
+  "CCR7","SELL",  
+  "NKG7","GNLY", 
+  "GZMB","GZMA","PRF1",
+  "MKI67","STMN1", #Cycling
+  "TRGV9","TRDV2",        
+  "TRAV1-2"              
 )
 m <-DotPlot(scRNA,features = fimarker)+coord_flip()+
   theme_bw()+
