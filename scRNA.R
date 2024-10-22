@@ -8,6 +8,8 @@ library(ArchR)
 library(harmony)
 library(ggpubr)
 
+setwd("~/scRNA")
+scRNA <- readRDS("scRNA.rds")
 DefaultAssay(scRNA) <- "RNA"
 scRNA <- NormalizeData(scRNA, normalization.method = "LogNormalize", scale.factor= 1e4)
 scRNA <- FindVariableFeatures(scRNA, nfeatures = 4000)                      
@@ -41,16 +43,36 @@ m <-DotPlot(scRNA,features = fimarker)+coord_flip()+
 ggsave("scRNA_geneDotplot.pdf", m, width = 8, height = 8)
 
 Idents(scRNA) <- "seurat_clusters"
-celltype <- c("0"="xxx", 
-              "1"="xxx", 
-              "2"="xxx", 
-              "3"="xxx",
-              "4"="xxx", 
-              "5"="xxx", 
-              "6"="xxx"
+celltype <- c("0"="TC", 
+              "1"="TC", 
+              "2"="mono", 
+              "3"="TC",
+              "4"="TC", 
+              "5"="NK", 
+              "6"="NK",
+              "7"="BC",
+              "8"="mono",
+              "9"="BC", 
+              "10"="TC", 
+              "11"="TC", 
+              "12"="TC",
+              "13"="mono",
+              "14"="mono", 
+              "15"="TC", 
+              "16"="DC",
+              "18"="TC",
+              "19"="cycling",
+              "20"="DC",
+              "21"="BC",
+              "22"="progenitor",
+              "23"="TC",
+              "24"="mono",
+              "25"="progenitor",
+              "26"="BC"
 )
 scRNA <- RenameIdents(scRNA, celltype) 
 scRNA$celltype <- scRNA@active.ident
+scRNA$celltype_all <- factor(scRNA$celltype_all,levels=c("TC","NK","BC","mono","DC","progenitor","cycling"))
 
 Idents(scRNA) <- "celltype"
 q <- DimPlot(scRNA, reduction = "umap",label=F, raster=FALSE, cols = paletteDiscrete(values = unique(scRNA@meta.data$celltype)))+
@@ -63,13 +85,50 @@ q <- DimPlot(scRNA, reduction = "umap",label=F, raster=FALSE, cols = paletteDisc
         axis.ticks.x = element_blank())
 ggsave("UMAP_scRNA_celltype.pdf", q, width = 7, height = 7)
 
+Idents(scRNA) <- "samples"
+q <- DimPlot(scRNA, reduction = "umap",label=F, raster=FALSE, cols = paletteDiscrete(values = unique(scRNA@meta.data$samples)))+
+  #NoLegend()+
+  labs(x = "UMAP1", y = "UMAP2", title = "scRNA-seq") +
+  theme(panel.border = element_rect(fill=NA,color="black", size=1, linetype="solid"),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())
+ggsave("UMAP_scRNA_samples.pdf", q, width = 7, height = 7)
+
+#QC
+pdf("scRNA_QC.pdf", width = 3, height = 6)
+VlnPlot(scRNA, features = c("nFeature_RNA"),pt.size = 0,cols = "#191970")+ geom_boxplot(width=0.5,col = "black", fill = "white")
+VlnPlot(scRNA, features = c("nCount_RNA"),pt.size = 0,cols = "#191970")+ geom_boxplot(width=0.5,col = "black", fill = "white")
+VlnPlot(scRNA, features = c("percent.mt"),pt.size = 0,cols = "#191970")+ geom_boxplot(width=0.5,col = "black", fill = "white")
+dev.off()
+
+#
+table(scRNA@meta.data$samples)
+table(scRNA@meta.data$Clusters)
+cM <- confusionMatrix(paste0(scRNA@meta.data$Clusters), paste0(scRNA@meta.data$samples))
+cM <- data.frame(cM / Matrix::rowSums(cM))
+range(cM) 
+custom_order <- c("1", "2", "3", "4","5","6","7","8","9","10","11",
+                  "12","13","14","15","16","17","18","19","20","21")  # 替换为您的自定义顺序
+cM <- cM[custom_order, ]
+
+#library(ComplexHeatmap)
+#library(circlize)
+col_fun <- colorRamp2(
+  c(0, 0.05, 0.1), 
+  c("#8c510a", "white", "#01665e")
+)
+pdf("scRNA_细胞比例_.pdf")
+Heatmap(cM, name = "Fraction of cells",  
+        cluster_rows = FALSE, 
+        cluster_columns = FALSE
+        )
+dev.off()
+
 #Cell Proportion
 pplist = list()
-sce_groups = c("xxx", "xxx", "xxx", "xxx")
-library(ggplot2)
-library(dplyr)
-library(ggpubr)
-library(cowplot)
+sce_groups = c("TC","NK","BC","mono","DC","progenitor","cycling")
 for(group_ in sce_groups){
   cellper_  = cellper %>% select(one_of(c('sample','group',group_)))
   colnames(cellper_) = c('sample','group','percent')
@@ -127,12 +186,33 @@ for (cluster_name in names(markers_by_cluster)) {
   write.csv(cluster_data, file_name, row.names = FALSE)
 }
 
+Idents(scRNA) <- "celltype_all"
+cellmarker <- FindAllMarkers(scRNA, only.pos = TRUE, min.pct = 0.05, logfc.threshold = 0.1)
+top10 <- cellmarker %>% group_by(cluster) %>% top_n(n = 10, wt = avg_log2FC)
+AverageExp <- AverageExpression(scRNA)
+expr <- AverageExp$RNA
+expr_normalize <- log2(expr+1)
+top10_genelist <- top10$gene
+expr_normalize_filted_1 <- expr_normalize[top10_genelist,]#top10_genelist可以换成特定的基因列表，以此来做热图
+write.csv(expr_normalize,"expression.csv")
+
+annotation_col = data.frame(CellType = factor(rep(c("TC","NK","BC","mono","DC","progenitor","cycling"), 1)))
+rownames(annotation_col) = c("TC","NK","BC","mono","DC","progenitor","cycling")
+ann_colors = list(
+  CellType = c(TC = "#1E1F57", NK = "#C8051D", BC = "#74117C", mono = "#1D7A33", DC = "#778BC7", progenitor = "#FDE20B", cycling = "#EE6722" )
+)
+p <- pheatmap(expr_normalize_filted_1,scale = "row", border = F,cluster_rows = FALSE,
+         cluster_cols = FALSE,show_rownames = TRUE,  angle_col = 45, cellwidth = 25,
+         annotation_col = annotation_col, annotation_legend = FALSE, annotation_colors = ann_colors, 
+         color = colorRampPalette(colors = c("navy", "white", "firebrick3"))(100))
+ggsave("scRNA_cellmarker_top10.pdf",p,width = 6, height = 9)
+
 #DEG
-cell_types <- rownames(table(seRNA$celltypeTC))
+cell_types <- rownames(table(scRNA$celltype))
 
 for (cell_type in cell_types) {
-  Idents(seRNA) <- "celltype"
-  subset_data <- subset(seRNA, idents = c(cell_type))
+  Idents(scRNA) <- "celltype"
+  subset_data <- subset(scRNA, idents = c(cell_type))
   Idents(subset_data) <- "Diseasestate"
   subset_data <- subset(x = subset_data, downsample = 200)
   result <- FindMarkers(
@@ -150,6 +230,12 @@ for (cell_type in cell_types) {
 
 list.files(output_path, pattern = "*.csv")
 
-
+#
+Idents(scRNA) <- "celltype"
+TC <- subset(scRNA, idents = c("TC"))
+NK <- subset(scRNA, idents = c("NK"))
+BC <- subset(scRNA, idents = c("BC"))
+mono <- subset(scRNA, idents = c("mono"))
+DC <- subset(scRNA, idents = c("DC"))
 
 
